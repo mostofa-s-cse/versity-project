@@ -39,13 +39,14 @@ npm install; npm run dev
 5. Create your database 
 
 7. Set database connection to your database in the .env file.
+```
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=pharmacy
 DB_USERNAME=root
 DB_PASSWORD=
-
+```
 9. Import full database sql file in the database folder, or run migrations
 Use this command to run migrations
 
