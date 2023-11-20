@@ -1,180 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <!-- csrf token -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ucfirst(AppSettings::get('app_name', 'App'))}} - {{ucfirst($title ?? '')}}</title>
-    <!-- Favicon -->
-    <link rel="shortcut icon" type="image/x-icon" href="{{!empty(AppSettings::get('favicon')) ? asset('storage/'.AppSettings::get('favicon')) : asset('assets/img/favicon.png')}}">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="{{asset('assets/css/bootstrap.min.css')}}">
-    <!-- Fontawesome CSS -->
-    <link rel="stylesheet" href="{{asset('assets/plugins/fontawesome/css/fontawesome.min.css')}}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <!-- Feathericon CSS -->
-    <link rel="stylesheet" href="{{asset('assets/css/feathericon.min.css')}}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="{{asset('assets/css/icons.min.css')}}">
-    <!-- Snackbar CSS -->
-	<link rel="stylesheet" href="{{asset('assets/plugins/snackbar/snackbar.min.css')}}">
-    <!-- Sweet Alert css -->
-    <link rel="stylesheet" href="{{asset('assets/plugins/sweetalert2/sweetalert2.min.css')}}">
-    <!-- Snackbar Css -->
-    <link rel="stylesheet" href="{{asset('assets/plugins/snackbar/snackbar.min.css')}}">
-    <!-- Select2 Css -->
-    <link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}">
-    <!-- Main CSS -->
-    <link rel="stylesheet" href="{{asset('assets/css/style.css')}}">
-    <!-- Page CSS -->
-    @stack('page-css')
-    <!--[if lt IE 9]>
-        <script src="assets/js/html5shiv.min.js"></script>
-        <script src="assets/js/respond.min.js"></script>
-    <![endif]-->
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>@yield('title')</title>
+    <!-- shortcut icon -->
+    <link rel="shortcut icon" type="image/x-icon" href="{{asset('frontend/images/favicon.png')}}">
+    <!-- css -->
+    <link rel="stylesheet" href="{{asset('frontend/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/all.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/morris.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/style.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/material.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/select2.min.css')}}">
+    <!-- {{--    datatables css--}} -->
+    <link rel="stylesheet" href="{{asset('frontend/datatables/css/datatables.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/bootstrap-datetimepicker.min.css')}}"/>
+    <!-- Fonts -->
+    <link rel="stylesheet" href="{{asset('frontend/css/fontawesome.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/line-awesome.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/font-awesome.min.css')}}">
+    <link rel="stylesheet" href="{{asset('frontend/css/line-awesome.min.css')}}">
+    <!-- Scripts -->
+    <script src="{{asset('frontend/js/jquery-3.7.0.min.js')}}"></script>
+    <script src="{{asset('frontend/js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{asset('frontend/js/jquery.slimscroll.min.js')}}"></script>
+
+    <script src="{{asset('frontend/js/moment.min.js')}}"></script>
+    <script src="{{asset('frontend/js/bootstrap-datetimepicker.min.js')}}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.min.js"></script>
+    <!-- <script src="{{asset('frontend/js/morris.min.js')}}"></script> -->
+    <script src="{{asset('frontend/js/raphael.min.js')}}"></script>
+    <script src="{{asset('frontend/js/chart.js')}}"></script>
+    <script src="{{asset('frontend/js/greedynav.js')}}"></script>
+    <script src="{{asset('frontend/js/layout.js')}}"></script>
+    <!-- <script src="{{asset('frontend/js/theme-settings.js')}}"></script> -->
+    <script src="{{asset('frontend/js/app.js')}}"></script>
+    <script src="{{asset('frontend/js/select2.min.js')}}"></script>
+    <script src="{{asset('vendor/sweetalert/sweetalert.all.js')}}"></script>
+
+
+    <!-- {{--    datatables js--}} -->
+    <!-- <script src="{{asset('frontend/datatables/js/bootstrap.bundle.min.js')}}"></script> -->
+    <!-- <script src="{{asset('frontend/datatables/js/jquery-3.6.0.min.js')}}"></script> -->
+    <script src="{{asset('frontend/datatables/js/datatables.min.js')}}"></script>
+    <script src="{{asset('frontend/datatables/js/pdfmake.min.js')}}"></script>
+    <script src="{{asset('frontend/datatables/js/vfs_fonts.js')}}"></script>
 </head>
 <body>
+<div id="app">
 
-    <!-- Main Wrapper -->
+    @include('sweetalert::alert')
+    @yield('user-not-login')
     <div class="main-wrapper">
+        <div id="loader-wrapper">
+        <div id="loader">
+        <div class="loader-ellips">
+        <span class="loader-ellips__dot"></span>
+        <span class="loader-ellips__dot"></span>
+        <span class="loader-ellips__dot"></span>
+        <span class="loader-ellips__dot"></span>
+        </div>
+        </div>
+        </div>
+        @if(session()->has('error'))
+            <div id="alert" class="float-end" style="width:30rem; margin:20px;margin-top: 68px;">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" data-auto-dismiss="4000">
+                    <strong>{{session()->get('error') }}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
 
-        <!-- Header -->
-        @include('admin.includes.header')
-        <!-- /Header -->
 
-        <!-- Sidebar -->
-        @include('admin.includes.sidebar')
-        <!-- /Sidebar -->
 
-        <!-- Page Wrapper -->
+        @if(session()->has('success'))
+            <div id="alert" class="float-end" style="width:30rem; margin:20px;margin-top: 68px;">
+                <div class="alert alert-primary alert-dismissible fade show" role="alert" data-auto-dismiss="4000">
+                    <strong>{{session()->get('success') }}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+
+
+        @if (Request::is('admin*'))
+            @include('admin.layouts.includes.sidebar')
+            @include('admin.layouts.includes.header')
+        @endif
         <div class="page-wrapper">
 
-            <div class="content container-fluid">
 
-                <!-- Page Header -->
-                <div class="page-header">
-                    <div class="row">
-                        @stack('page-header')
-                    </div>
-                </div>
-                <!-- /Page Header -->
-                @if ($errors->any())
-                    @foreach ($errors->all() as $error)
-                        <x-alerts.danger :error="$error" />
-                    @endforeach
-                @endif
+            @yield('content')
 
-                @yield('content')
-                <!-- add sales modal-->
-                <x-modals.add-sale />
-                 <!-- / add sales modal -->
-            </div>
         </div>
-        <!-- /Page Wrapper -->
-
     </div>
-    <!-- /Main Wrapper -->
-    
-</body>
-<!-- jQuery -->
-<script src="{{asset('assets/plugins/jquery/jquery.min.js')}}"></script>
-
-<!-- Bootstrap Core JS -->
-<script src="{{asset('assets/js/popper.min.js')}}"></script>
-<script src="{{asset('assets/js/bootstrap.min.js')}}"></script>
-<script src="{{asset('assets/plugins/slimscroll/jquery.slimscroll.min.js')}}"></script>
-<!-- Sweet Alert Js -->
-<script src="{{asset('assets/plugins/sweetalert2/sweetalert2.min.js')}}"></script>
-<!-- Snackbar Js -->
-<script src="{{asset('assets/plugins/snackbar/snackbar.min.js')}}"></script>
-<!-- Select2 JS -->
-<script src="{{asset('assets/plugins/select2/js/select2.min.js')}}"></script>
-<!-- Custom JS -->
-<script src="{{asset('assets/js/script.js')}}"></script>
+</div>
+@yield('script')
 <script>
-    $(document).ready(function(){
-        $('body').on('click','#deletebtn',function(){
-            var id = $(this).data('id');
-            var route = $(this).data('route');
-            swal.queue([
-                {
-                    title: "Are you sure?",
-                    text: "You won't be able to revert this!",
-                    type: "warning",
-                    showCancelButton: !0,
-                    confirmButtonText: '<i class="fe fe-trash mr-1"></i> Delete!',
-                    cancelButtonText: '<i class="fa fa-times mr-1"></i> Cancel!',
-                    confirmButtonClass: "btn btn-success mt-2",
-                    cancelButtonClass: "btn btn-danger ml-2 mt-2",
-                    buttonsStyling: !1,
-                    preConfirm: function(){
-                        return new Promise(function(){
-                            $.ajax({
-                                url: route,
-                                type: "DELETE",
-                                data: {"id": id},
-                                success: function(){
-                                    swal.insertQueueStep(
-                                        Swal.fire({
-                                            title: "Deleted!",
-                                            text: "Resource has been deleted.",
-                                            type: "success",
-                                            showConfirmButton: !1,
-                                            timer: 1500,
-                                        })
-                                    )
-                                    $('.datatable').DataTable().ajax.reload();
-                                }
-                            })
-
-                        })
-                    }
-                }
-            ]).catch(swal.noop);
-        }); 
+    $('.alert[data-auto-dismiss]').each(function (index, element) {
+        var $element = $(element),
+            timeout = $element.data('auto-dismiss') || 5000;
+        setTimeout(function () {
+            $element.alert('close');
+        }, timeout);
     });
-    @if(Session::has('message'))
-        var type = "{{ Session::get('alert-type', 'info') }}";
-        switch(type){
-            case 'info':
-                Snackbar.show({
-                    text: "{{ Session::get('message') }}",
-                    actionTextColor: '#fff',
-                    backgroundColor: '#2196f3'
-                });
-                break;
-
-            case 'warning':
-                Snackbar.show({
-                    text: "{{ Session::get('message') }}",
-                    pos: 'top-right',
-                    actionTextColor: '#fff',
-                    backgroundColor: '#e2a03f'
-                });
-                break;
-
-            case 'success':
-                Snackbar.show({
-                    text: "{{ Session::get('message') }}",
-                    pos: 'top-right',
-                    actionTextColor: '#fff',
-                    backgroundColor: '#8dbf42'
-                });
-                break;
-
-            case 'danger':
-                Snackbar.show({
-                    text: "{{ Session::get('message') }}",
-                    pos: 'top-right',
-                    actionTextColor: '#fff',
-                    backgroundColor: '#e7515a'
-                });
-                break;
-        }
-    @endif
 </script>
-<!-- Page JS -->
-@stack('page-js')
+</body>
 </html>

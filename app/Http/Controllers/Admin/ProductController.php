@@ -3,102 +3,101 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Product;
+
 use App\Models\Purchase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
 use QCod\AppSettings\Setting\AppSettings;
-
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function index(Request $request)
+    /*
+    |--------------------------------------------------------------------------
+    | set index page view
+    |--------------------------------------------------------------------------
+    */
+    public function index()
     {
-        $title = 'products';
-        if ($request->ajax()) {
-            $products = Product::latest();
-            return DataTables::of($products)
-                ->addColumn('product',function($product){
-                    $image = '';
-                    if(!empty($product->purchase)){
-                        $image = null;
-                        if(!empty($product->purchase->image)){
-                            $image = '<span class="avatar avatar-sm mr-2">
-                            <img class="avatar-img" src="'.asset("storage/purchases/".$product->purchase->image).'" alt="image">
-                            </span>';
-                        }
-                        return $product->purchase->product. ' ' . $image;
-                    }                 
-                })
-                
-                ->addColumn('category',function($product){
-                    $category = null;
-                    if(!empty($product->purchase->category)){
-                        $category = $product->purchase->category->name;
-                    }
-                    return $category;
-                })
-                ->addColumn('price',function($product){                   
-                    return settings('app_currency','$').' '. $product->price;
-                })
-                ->addColumn('quantity',function($product){
-                    if(!empty($product->purchase)){
-                        return $product->purchase->quantity;
-                    }
-                })
-                ->addColumn('expiry_date',function($product){
-                    if(!empty($product->purchase)){
-                        return date_format(date_create($product->purchase->expiry_date),'d M, Y');
-                    }
-                })
-                ->addColumn('action', function ($row) {
-                    $editbtn = '<a href="'.route("products.edit", $row->id).'" class="editbtn"><button class="btn btn-primary"><i class="fas fa-edit"></i></button></a>';
-                    $deletebtn = '<a data-id="'.$row->id.'" data-route="'.route('products.destroy', $row->id).'" href="javascript:void(0)" id="deletebtn"><button class="btn btn-danger"><i class="fas fa-trash"></i></button></a>';
-                    if (!auth()->user()->hasPermissionTo('edit-product')) {
-                        $editbtn = '';
-                    }
-                    if (!auth()->user()->hasPermissionTo('destroy-purchase')) {
-                        $deletebtn = '';
-                    }
-                    $btn = $editbtn.' '.$deletebtn;
-                    return $btn;
-                })
-                ->rawColumns(['product','action'])
-                ->make(true);
-        }
-        return view('admin.products.index',compact(
-            'title'
-        ));
-    }
-    
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        $title = 'add product';
-        $purchases = Purchase::get();
-        return view('admin.products.create',compact(
-            'title','purchases'
-        ));
+        $purchase = \DB::table('purchases')->get();
+        $purchases ['purchases'] = $purchase;
+        return view('admin.pages.product.index',$purchases);
         
     }
+    /*
+    |--------------------------------------------------------------------------
+    | handle fetch all Product ajax request
+    |--------------------------------------------------------------------------
+    */
+	public function fetchAll() {
+		try {
+            $product = Product::all();
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+            // $Product = DB::table('Products as p')
+            //         ->leftJoin('categories as c', function($join) {
+            //             $join->on('c.id', '=', 'p.category_id');
+            //         })
+            //         ->leftJoin('suppliers as s', function($join) {
+            //             $join->on('s.id', '=', 'p.supplier_id');
+            //         })->get(['p.*','c.name as category_name','s.name as as supplier_name']);
+
+            $output = '';
+            $i = 0;
+            if ($product->count() > 0) {
+                $output .= '<table class="table table-striped table-sm align-middle">
+            <thead>
+              <tr>
+              <th>ID</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Quantity</th>
+                <th>Expire Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>';
+                foreach ($product as $item) {
+                    $output .= '<tr>
+                <td>' . ++$i . '</td>
+                <td class="sorting_1">
+                <h2 class="table-avatar">
+                <img class="avatar" src="'.asset("storage/purchases/".$item->purchase->image).'" alt="product">
+                <a href="profile.html"><span>' . $item->purchase->product . '</span></a>
+                </h2>
+                </td>
+                <td>' . $item->purchase->category->name . '</td>
+                <td>' . $item->price . '</td>
+                <td>' . $item->discount . '</td>
+                <td>' . $item->quantity . '</td>
+                <td>' . date_format(date_create($item->purchase->expiry_date),'d M, Y'). '</td>
+                <td>
+                  <a href="#" id="' . $item->id . '" class="text-success mx-1 editIcon" data-bs-toggle="modal" data-bs-target="#editProductModal"><button class="btn btn-primary"><i class="fas fa-edit"></i></button></a>
+
+                  <a href="#" id="' . $item->id . '" class="text-danger mx-1 deleteIcon"><button class="btn btn-danger"><i class="fas fa-trash"></i></button></a>
+                </td>
+              </tr>';
+                }
+                $output .= '</tbody></table>';
+                echo $output;
+                
+            } else {
+                echo '<h1 class="text-center text-secondary my-5">No record present in the database!</h1>';
+            }
+        } catch (\Exception $e) {
+            // Return Json Response
+            return response()->json([
+                'message' => $e
+            ], 500);
+        }
+    }
+    /*
+    |--------------------------------------------------------------------------
+    | handle insert a new Product ajax request
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request)
     {
         $this->validate($request,[
@@ -107,45 +106,48 @@ class ProductController extends Controller
             'discount'=>'nullable',
             'description'=>'nullable|max:255',
         ]);
+        $sold_product = Purchase::find($request->product);
         $price = $request->price;
         if($request->discount >0){
-           $price = $request->discount * $request->price;
+            $price = $request->price * (1 - $request->discount / 100);
         }
+        $purchased_item = Purchase::find($sold_product->id);
+        $new_quantity = ($purchased_item->quantity) - ($request->quantity);
+        if (!($new_quantity < 0)){
+            $purchased_item->update([
+                'quantity'=>$new_quantity,
+            ]);}
         Product::create([
             'purchase_id'=>$request->product,
             'price'=>$price,
             'discount'=>$request->discount,
+            'quantity'=>$request->quantity,
             'description'=>$request->description,
         ]);
-        $notification = notify("Product has been added");
-        return redirect()->route('products.index')->with($notification);
+        // $notifications = notify("Product has been added");
+        return response()->json([
+            'status' => 200,
+        ]);
     }
-
-    
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \app\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Product $product)
-    {
-        $title = 'edit product';
-        $purchases = Purchase::get();
-        return view('admin.products.edit',compact(
-            'title','product','purchases'
-        ));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \app\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Product $product)
-    {
+     /*
+    |--------------------------------------------------------------------------
+    | handle edit an Product ajax request
+    |--------------------------------------------------------------------------
+    */
+    public function edit(Request $request)
+     {
+       $id = $request->id;
+       $Product = Product::find($id);
+       return response()->json($Product);
+     }
+    /*
+    |--------------------------------------------------------------------------
+    | handle update an Product ajax request
+    |--------------------------------------------------------------------------
+    */
+     public function update(Request $request)
+     {
+        $products = Product::find($request->id);
         $this->validate($request,[
             'product'=>'required|max:200',
             'price'=>'required',
@@ -157,154 +159,52 @@ class ProductController extends Controller
         if($request->discount >0){
            $price = $request->discount * $request->price;
         }
-       $product->update([
+        $sold_product = Purchase::find($request->product);
+        $purchased_item = Purchase::find($sold_product->id);
+        $new_quantity = ($purchased_item->quantity) - ($request->quantity);
+        if (!($new_quantity < 0)){
+            $purchased_item->update([
+                'quantity'=>$new_quantity,
+            ]);}
+        $product_item = Product::find($products->id);
+        // dd($product_item->quantity);
+        
+        $newquantity = $product_item->quantity + $request->quantity;
+       $products->update([
             'purchase_id'=>$request->product,
             'price'=>$price,
             'discount'=>$request->discount,
+            'quantity'=>$newquantity,
             'description'=>$request->description,
         ]);
-        $notification = notify('product has been updated');
-        return redirect()->route('products.index')->with($notification);
-    }
-
-     /**
-     * Display a listing of expired resources.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function expired(Request $request){
-        $title = "expired Products";
-        if($request->ajax()){
-            $products = Purchase::whereDate('expiry_date', '=', Carbon::now())->get();
-            return DataTables::of($products)
-                ->addColumn('product',function($product){
-                    $image = '';
-                    if(!empty($product->purchase)){
-                        $image = null;
-                        if(!empty($product->purchase->image)){
-                            $image = '<span class="avatar avatar-sm mr-2">
-                            <img class="avatar-img" src="'.asset("storage/purchases/".$product->purchase->image).'" alt="image">
-                            </span>';
-                        }
-                        return $product->purchase->product. ' ' . $image;
-                    }                 
-                })
-                
-                ->addColumn('category',function($product){
-                    $category = null;
-                    if(!empty($product->purchase->category)){
-                        $category = $product->purchase->category->name;
-                    }
-                    return $category;
-                })
-                ->addColumn('price',function($product){                   
-                    return settings('app_currency','$').' '. $product->price;
-                })
-                ->addColumn('quantity',function($product){
-                    if(!empty($product->purchase)){
-                        return $product->purchase->quantity;
-                    }
-                })
-                ->addColumn('expiry_date',function($product){
-                    if(!empty($product->purchase)){
-                        return date_format(date_create($product->purchase->expiry_date),'d M, Y');
-                    }
-                })
-                ->addColumn('action', function ($row) {
-                    $editbtn = '<a href="'.route("products.edit", $row->id).'" class="editbtn"><button class="btn btn-primary"><i class="fas fa-edit"></i></button></a>';
-                    $deletebtn = '<a data-id="'.$row->id.'" data-route="'.route('products.destroy', $row->id).'" href="javascript:void(0)" id="deletebtn"><button class="btn btn-danger"><i class="fas fa-trash"></i></button></a>';
-                    if (!auth()->user()->hasPermissionTo('edit-product')) {
-                        $editbtn = '';
-                    }
-                    if (!auth()->user()->hasPermissionTo('destroy-purchase')) {
-                        $deletebtn = '';
-                    }
-                    $btn = $editbtn.' '.$deletebtn;
-                    return $btn;
-                })
-                ->rawColumns(['product','action'])
-                ->make(true);
-        }
-
-        return view('admin.products.expired',compact(
-            'title',
-        ));
-    }
-
-    /**
-     * Display a listing of out of stock resources.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function outstock(Request $request){
-        $title = "outstocked Products";
-        if($request->ajax()){
-            $products = Purchase::where('quantity', '<=', 0)->get();
-            return DataTables::of($products)
-                ->addColumn('product',function($product){
-                    $image = '';
-                    if(!empty($product->purchase)){
-                        $image = null;
-                        if(!empty($product->purchase->image)){
-                            $image = '<span class="avatar avatar-sm mr-2">
-                            <img class="avatar-img" src="'.asset("storage/purchases/".$product->purchase->image).'" alt="image">
-                            </span>';
-                        }
-                        return $product->purchase->product. ' ' . $image;
-                    }                 
-                })
-                
-                ->addColumn('category',function($product){
-                    $category = null;
-                    if(!empty($product->purchase->category)){
-                        $category = $product->purchase->category->name;
-                    }
-                    return $category;
-                })
-                ->addColumn('price',function($product){                   
-                    return settings('app_currency','$').' '. $product->price;
-                })
-                ->addColumn('quantity',function($product){
-                    if(!empty($product->purchase)){
-                        return $product->purchase->quantity;
-                    }
-                })
-                ->addColumn('expiry_date',function($product){
-                    if(!empty($product->purchase)){
-                        return date_format(date_create($product->purchase->expiry_date),'d M, Y');
-                    }
-                })
-                ->addColumn('action', function ($row) {
-                    $editbtn = '<a href="'.route("products.edit", $row->id).'" class="editbtn"><button class="btn btn-primary"><i class="fas fa-edit"></i></button></a>';
-                    $deletebtn = '<a data-id="'.$row->id.'" data-route="'.route('products.destroy', $row->id).'" href="javascript:void(0)" id="deletebtn"><button class="btn btn-danger"><i class="fas fa-trash"></i></button></a>';
-                    if (!auth()->user()->hasPermissionTo('edit-product')) {
-                        $editbtn = '';
-                    }
-                    if (!auth()->user()->hasPermissionTo('destroy-purchase')) {
-                        $deletebtn = '';
-                    }
-                    $btn = $editbtn.' '.$deletebtn;
-                    return $btn;
-                })
-                ->rawColumns(['product','action'])
-                ->make(true);
-        }
-        $product = Purchase::where('quantity', '<=', 0)->first();        
-        return view('admin.products.outstock',compact(
-            'title',
-        ));
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Request $request)
+        return response()->json([
+            'status' => 200,
+        ]);
+     }
+      /*
+    |--------------------------------------------------------------------------
+    | handle delete an Product ajax request
+    |--------------------------------------------------------------------------
+    */
+    public function delete(Request $request)
     {
-        return Product::findOrFail($request->id)->delete();
+        try {
+            
+            $id = $request->id;
+            $product = Product::find($request->id); 
+            // dd($product->purchase_id);
+            $product_qty = \DB::table('purchases')->where('id', $product->purchase_id)->first(['quantity']);
+            $new_quantity =(int) $product->quantity + $product_qty->quantity;
+
+            DB::table('purchases')
+            ->where('id', $product->purchase_id)
+            ->update(['quantity' => $new_quantity]);
+            Product::destroy($id);
+        } catch (\Exception $e) {
+            // Return Json Response
+            return response()->json([
+                'message' => $e
+            ], 500);
+        }
     }
 }

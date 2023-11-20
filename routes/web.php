@@ -1,24 +1,23 @@
 <?php
 
-use App\Http\Controllers\Admin\AccountsController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\BackupController;
-use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\Auth\LoginController;
-use App\Http\Controllers\Admin\Auth\LogoutController;
-use App\Http\Controllers\Admin\NotificationController;
-use App\Http\Controllers\Admin\Auth\RegisterController;
-use App\Http\Controllers\Admin\Auth\ResetPasswordController;
-use App\Http\Controllers\Admin\Auth\ForgotPasswordController;
-use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\ExpiredProductController;
+use App\Http\Controllers\Admin\OutStockProductController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
-use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SaleController;
-use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\SuppliersController;
+use App\Http\Controllers\Admin\CategoriesController;
+use App\Http\Controllers\Admin\AccountsController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DamageController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\OutStockPurchaseController;
+use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\ForgetPasswordManager;
+use App\Http\Controllers\Admin\UserController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,60 +25,155 @@ use App\Http\Controllers\Admin\SupplierController;
 |--------------------------------------------------------------------------
 |
 | Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
 |
 */
-Route::middleware(['auth'])->group(function(){
-    Route::get('dashboard',[DashboardController::class,'index'])->name('dashboard');
-    Route::get('',[DashboardController::class,'Index']);
-    Route::get('notification',[NotificationController::class,'markAsRead'])->name('mark-as-read');
-    Route::get('notification-read',[NotificationController::class,'read'])->name('read');
-    Route::get('profile',[UserController::class,'profile'])->name('profile');
-    Route::post('profile/{user}',[UserController::class,'updateProfile'])->name('profile.update');
-    Route::put('profile/update-password/{user}',[UserController::class,'updatePassword'])->name('update-password');
-    Route::post('logout',[LogoutController::class,'index'])->name('logout');
 
-    Route::resource('users',UserController::class);
-    Route::resource('permissions',PermissionController::class)->only(['index','store','destroy']);
-    Route::put('permission',[PermissionController::class,'update'])->name('permissions.update');
-    Route::resource('roles',RoleController::class);
-    Route::resource('suppliers',SupplierController::class);
-    Route::resource('categories',CategoryController::class)->only(['index','store','destroy']);
-    // Route::resource('accounts',CategoryController::class)->only(['index','store','destroy']);
-    Route::get('accounts',[AccountsController::class,'Index']);
-    Route::put('categories',[CategoryController::class,'update'])->name('categories.update');
-    Route::resource('purchases',PurchaseController::class)->except('show');
-    Route::get('purchases/reports',[PurchaseController::class,'reports'])->name('purchases.report');
-    Route::post('purchases/reports',[PurchaseController::class,'generateReport']);
-    Route::resource('products',ProductController::class)->except('show');
-    Route::get('products/outstock',[ProductController::class,'outstock'])->name('outstock');
-    Route::get('products/expired',[ProductController::class,'expired'])->name('expired');
-    Route::resource('sales',SaleController::class)->except('show');
-    Route::get('sales/reports',[SaleController::class,'reports'])->name('sales.report');
-    Route::post('sales/reports',[SaleController::class,'generateReport']);
-
-    Route::get('backup', [BackupController::class,'index'])->name('backup.index');
-    Route::put('backup/create', [BackupController::class,'create'])->name('backup.store');
-    Route::get('backup/download/{file_name?}', [BackupController::class,'download'])->name('backup.download');
-    Route::delete('backup/delete/{file_name?}', [BackupController::class,'destroy'])->where('file_name', '(.*)')->name('backup.destroy');
-
-    Route::get('settings',[SettingController::class,'index'])->name('settings');
+Route::get('/', function () {
+    return view('auth.login');
 });
 
-Route::middleware(['guest'])->group(function () {
-    Route::get('',function(){
-        return redirect()->route('dashboard');
-    });
+Auth::routes();
 
-    Route::get('login',[LoginController::class,'index'])->name('login');
-    Route::post('login',[LoginController::class,'login']);
+// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-    Route::get('register',[RegisterController::class,'index'])->name('register');
-    Route::post('register',[RegisterController::class,'store']);
+Route::group(['prefix' => 'admin', 'middleware' => 'auth', 'namespace' => 'Admin'], function () {
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('pages.bashboard');
+    /*
+    |--------------------------------------------------------------------------
+    | All User Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    // Route::get('user-profile', [UserController::class, 'profile'])->name('users.profile');
+    Route::get('/users-fetchall', [UserController::class, 'fetchAll'])->name('users.fetchAll');
+    Route::post('/users-store', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users-edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::post('/users-update', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users-delete', [UserController::class, 'delete'])->name('users.delete');
+    Route::get('/profile', [UserController::class, 'profile'])->name('users.profile');
+    /*
+    |--------------------------------------------------------------------------
+    | All Categories Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('categories', [CategoriesController::class, 'index'])->name('categories.index');
+    Route::get('/categories-fetchall', [CategoriesController::class, 'fetchAll'])->name('categories.fetchAll');
+    Route::post('/categories-store', [CategoriesController::class, 'store'])->name('categories.store');
+    Route::get('/categories-edit', [CategoriesController::class, 'edit'])->name('categories.edit');
+    Route::post('/categories-update', [CategoriesController::class, 'update'])->name('categories.update');
+    Route::delete('/categories-delete', [CategoriesController::class, 'delete'])->name('categories.delete');
+    /*
+    |--------------------------------------------------------------------------
+    | All Supplier Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('supplier', [SuppliersController::class, 'index'])->name('supplier.index');
+    Route::get('/supplier-fetchall', [SuppliersController::class, 'fetchAll'])->name('supplier.fetchAll');
+    Route::post('/supplier-store', [SuppliersController::class, 'store'])->name('supplier.store');
+    Route::get('/supplier-edit', [SuppliersController::class, 'edit'])->name('supplier.edit');
+    Route::post('/supplier-update', [SuppliersController::class, 'update'])->name('supplier.update');
+    Route::delete('/supplier-delete', [SuppliersController::class, 'delete'])->name('supplier.delete');
+    /*
+    |--------------------------------------------------------------------------
+    | All Purchase Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('purchase', [PurchaseController::class, 'index'])->name('purchase.index');
+    Route::get('/purchase-fetchall', [PurchaseController::class, 'fetchAll'])->name('purchase.fetchAll');
+    Route::post('/purchase-store', [PurchaseController::class, 'store'])->name('purchase.store');
+    Route::get('/purchase-edit', [PurchaseController::class, 'edit'])->name('purchase.edit');
+    Route::post('/purchase-update', [PurchaseController::class, 'update'])->name('purchase.update');
+    Route::delete('/purchase-delete', [PurchaseController::class, 'delete'])->name('purchase.delete');
+    Route::get('/purchase-reports', [PurchaseController::class, 'reports'])->name('purchase.reports');
+    Route::get('purchase/outstock', [OutStockPurchaseController::class, 'outstock'])->name('purchase.outstock');
+    Route::post('/purchase-reports', [PurchaseController::class, 'generateReport'])->name('purchase.generateReport');
+    /*
+    |--------------------------------------------------------------------------
+    | All Purchase Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('products', [ProductController::class, 'index'])->name('product.index');
+    Route::get('/product-fetchAll', [ProductController::class, 'fetchAll'])->name('product.fetchAll');
+    Route::post('/product-store', [ProductController::class, 'store'])->name('product.store');
+    Route::get('/product-edit', [ProductController::class, 'edit'])->name('product.edit');
+    Route::post('/product-update', [ProductController::class, 'update'])->name('product.update');
+    Route::delete('/product-delete', [ProductController::class, 'delete'])->name('product.delete');
+    Route::get('products/outstock', [OutStockProductController::class, 'outstock'])->name('product.outstock');
+    Route::get('products/expired', [ExpiredProductController::class, 'expired'])->name('expired');
+    /*
+   |--------------------------------------------------------------------------
+   | All Sales Routes
+   |--------------------------------------------------------------------------
+   */
+    Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('/sales-fetchAll', [SaleController::class, 'fetchAll'])->name('sales.fetchAll');
+    Route::post('/sales-store', [SaleController::class, 'store'])->name('sales.store');
+    // Route::get('/sales-edit', [SaleController::class, 'edit'])->name('sales.edit');
+    // Route::post('/sales-update/{id}', [SaleController::class, 'update'])->name('sales.update');
+    Route::get('/sales_details', [SaleController::class, 'SalesDetails'])->name('sales.details');
+    Route::get('/sales_fetchAllsales', [SaleController::class, 'fetchAllSales'])->name('sales.fetchAllSales');
+    Route::delete('/sales-delete', [SaleController::class, 'destroy'])->name('sales.delete');
+    Route::get('/sales-reports', [SaleController::class, 'reports'])->name('sales.reports');
+    Route::post('/sales-reports', [SaleController::class, 'generateReport'])->name('sales.generateReport');
+   /*
+   |--------------------------------------------------------------------------
+   | All Damage Routes
+   |--------------------------------------------------------------------------
+   */
 
-    Route::get('forgot-password',[ForgotPasswordController::class,'index'])->name('password.request');
-    Route::post('forgot-password',[ForgotPasswordController::class,'requestEmail']);
-    Route::get('reset-password/{token}',[ResetPasswordController::class,'index'])->name('password.reset');
-    Route::post('reset-password',[ResetPasswordController::class,'resetPassword'])->name('password.update');
+   Route::get('/damage',[DamageController::class, 'index'])->name('damage.index');
+   Route::get('/damage-fetchall', [DamageController::class, 'fetchAll'])->name('damage.fetchAll');
+   Route::post('/damage/store', [DamageController::class, 'store'])->name('damage.store');
+   Route::get('/damage/edit', [DamageController ::class, 'edit'])->name('damage.edit');
+   Route::post('/damage/update', [DamageController::class, 'update'])->name('damage.update');
+   Route::delete('/damage/delete', [DamageController::class, 'destroy'])->name('damage.delete');
+   Route::get('/damage-reports', [DamageController::class, 'reports'])->name('damage.reports');
+   Route::post('/damage-reports', [DamageController::class, 'generateReport'])->name('damage.generateReport');
+ 
+    /*
+    |--------------------------------------------------------------------------
+    | All Accounts Routes
+    |--------------------------------------------------------------------------
+    */
+    // Route::get('accounts', [AccountsController::class, 'index'])->name('accounts.index');
+    // Route::get('accounts/search', [AccountsController::class, 'searchtransaction'])->name('accounts.search');
+    // Route::get('accounts-billing-history', [AccountsController::class, 'BillingHistoryindex'])->name('billinghistory.index');
+    // Route::get('accounts-other-transaction', [AccountsController::class, 'OtherTransactionIndex'])->name('othertransaction.index');
+    // Route::post('accounts-other-transaction/store', [AccountsController::class, 'store'])->name('other.transection.store');
+    // Route::get('accounts-other-transaction/ledger/details', [AccountsController::class, 'ledgerdetails'])->name('other.transection.ledgerdetails');
+    // Route::get('accounts-transaction-history', [AccountsController::class, 'TransactionHistoryIndex'])->name('transactionhistory.index');
+    Route::get('cash-memo', [AccountsController::class, 'CashMemo'])->name('cashmemo.index');
+    // Route::get('barcode-scanning', [AccountsController::class, 'BarcodeScanning'])->name('barcodescanning.index');
+    /*
+  |--------------------------------------------------------------------------
+  | All Customer Routes
+  |--------------------------------------------------------------------------
+  */
+    Route::get('customer', [CustomerController::class, 'index'])->name('customer.index');
+    Route::get('/customer-fetchall', [CustomerController::class, 'fetchAll'])->name('customer.fetchAll');
+    Route::post('/customer-store', [CustomerController::class, 'store'])->name('customer.store');
+    Route::get('/customer-edit', [CustomerController::class, 'edit'])->name('customer.edit');
+    Route::post('/customer-update', [CustomerController::class, 'update'])->name('customer.update');
+    Route::delete('/customer-delete', [CustomerController::class, 'delete'])->name('customer.delete');
+
+   /*
+   |--------------------------------------------------------------------------
+   | All Inventories Routes
+   |--------------------------------------------------------------------------
+   */
+  Route::get('inventories', [InventoryController::class, 'index'])->name('inventory.index');
+  Route::get('/inventories-fetchall', [InventoryController::class, 'fetchAll'])->name('inventory.fetchAll');
+  Route::post('/inventories-store', [InventoryController::class, 'store'])->name('inventory.store');
+  Route::get('/inventories-edit', [InventoryController::class, 'edit'])->name('inventory.edit');
+  Route::post('/inventories-update', [InventoryController::class, 'update'])->name('inventory.update');
+  Route::delete('/inventories-delete', [InventoryController::class, 'delete'])->name('inventory.delete');
 });
+
+
+//forget and reset password
+Route::get('/forgetpassword',[ForgetPasswordManager::class, 'forgetPassword'])->name('forget.password.show');
+Route::post('/forgetpassword',[ForgetPasswordManager::class, 'forgetPasswordPost'])->name('forget.post.password');
+Route::get('/resetpassword/{token}',[ForgetPasswordManager::class, 'resetPassword'])->name('reset.password');
+Route::post('/resetpassword',[ForgetPasswordManager::class, 'resetPasswordPost'])->name('reset.password.post');
